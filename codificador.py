@@ -17,10 +17,10 @@ class Codificador:
             y += (x ** i)*self.coefs[i]
         return y
 
-    def codificaEmDecimal(self, valorASCII):
-        return self.f(valorASCII)
+    def codificaEmDecimal(self, valorUnicode):
+        return self.f(valorUnicode)
 
-    def decodificaEmASCII(self, decimal):
+    def decodificaEmUnicode(self, decimal):
         def media(a, b):
             return (a+b)/2
 

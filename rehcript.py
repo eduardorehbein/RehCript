@@ -13,10 +13,10 @@ class RehCript:
         self.c32 = Conversor32()
 
     def codifica(self, msg):
-        #Traduz a mensagem numa matriz onde cada caracter passa a ser representado pelo seu valor ASCII
+        #Traduz a mensagem numa matriz onde cada caracter passa a ser representado pelo seu valor unicode
         matriz = self.tradutor.fraseParaNumeros(msg)
 
-        #Codifica os valores ASCII de acordo com a f(x) = a*x**n + b*x**(n-1) + ... + c*x**0
+        #Codifica os valores unicode de acordo com a f(x) = a*x**n + b*x**(n-1) + ... + c*x**0
         coder = Codificador(self.codLvl)
         matrizCodDec = list(map(lambda palavra: list(map(lambda valor: coder.codificaEmDecimal(valor), palavra)), matriz))
         
@@ -54,6 +54,6 @@ class RehCript:
         palavras.remove(palavras[0])
         matrizCod32 = list(map(lambda palavra: palavra.split("w"), palavras))
         matrizCodDec = list(map(lambda palavra: list(map(lambda valor: self.c32.base32ParaDec(valor), palavra)), matrizCod32))
-        matrizASCII = list(map(lambda palavra: list(map(lambda valor: coder.decodificaEmASCII(valor), palavra)), matrizCodDec))
+        matrizUnicode = list(map(lambda palavra: list(map(lambda valor: coder.decodificaEmUnicode(valor), palavra)), matrizCodDec))
         
-        return self.tradutor.numerosParaFrase(matrizASCII)
+        return self.tradutor.numerosParaFrase(matrizUnicode)
