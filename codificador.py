@@ -6,7 +6,7 @@ class Codificador:
     def __init__(self, nCoefsPolinomio, coefs = None):
         self.mtmHelper = MtmHelper()
         if not(coefs):
-            self.coefs = [randint(1, 9) for i in range(nCoefsPolinomio)]
+            self.coefs = [randint(1, 100) for i in range(nCoefsPolinomio)]
         else:
             self.coefs = coefs
         self.exp = list(range(nCoefsPolinomio))
