@@ -1,144 +1,103 @@
 from tradutor import Tradutor
 from codificador import Codificador
 from conversorDeBases import ConversorDeBases
+from chave import Chave
 from random import randint
 
 class RehCript:
     
-    def __init__(self, codLvl = 5):
+    def __init__(self, codLvl = 5, chave = None):
         if codLvl > 2:
             self.codLvl = codLvl
         else:
             self.codLvl = 3
+        self.chave = chave
         self.tradutor = Tradutor()
 
-    def eNumero(self, a):
-        if a == "0" or a == "1" or a == "2" or a == "3" or a == "4" or a == "5" or a == "6" or a == "7" or a == "8" or a == "9":
-            return True
-        return False
+    def caracteresEspeciais(self, conversor):
+        return conversor.dicionarioDecBase[conversor.base], conversor.dicionarioDecBase[conversor.base + 1], conversor.dicionarioDecBase[conversor.base + 2]
 
     def codifica(self, msg):
-        def geraChave(codificador):
-            def addLetra(chave = ""):
-                novaChave = chave
-                novaChave += conversor.dicionarioDecBase[randint(10, conversor.base - 3)]
-                return novaChave
+        def condensaEmString(matriz, separacao, espaco, virgula):
+            string = ""
 
-            def addNumero(chave, codificador, contador):
-                novaChave = chave
-                novaChave += str(codificador.coefs[contador])
-                return addLetra(novaChave)
-
-            chave = addLetra()
-            chave += str(len(codificador.coefs))
-            contadorCoefs = 0
-            letrasEmSeq = 0
-            n = randint(1, 3)
-            while contadorCoefs < len(codificador.coefs):
-                if (n == 1 and not(self.eNumero(chave[-1]))) or letrasEmSeq > 3:
-                    chave = addNumero(chave, coder, contadorCoefs)
-                    contadorCoefs += 1
-                    letrasEmSeq = 0
-                else:
-                    chave = addLetra(chave)
-                    letrasEmSeq += 1
-                n = randint(1, 3)
-            chave = addLetra(chave)
-            chave += str(conversor.base)
-
-            return chave
-
+            #iP = indice palavra, iC = indice caracter
+            for iP in range(len(matriz)):
+                for iC in range(len(matriz[iP])):
+                    if type(matriz[iP][iC]) == tuple:
+                        string += (matriz[iP][iC][0] + virgula + matriz[iP][iC][1])
+                    else:
+                        string += matriz[iP][iC]
+                    if iC < len(matriz[iP]) - 1:
+                        string += separacao
+                if iP < len(matriz) - 1:
+                    string += espaco
+            
+            return string
+        
         #Traduz a mensagem numa matriz onde cada caracter passa a ser representado pelo seu valor Unicode
         matriz = self.tradutor.fraseParaNumeros(str(msg))
 
-        #Codifica os valores Unicode de acordo com a f(x) = a*x**n + b*x**(n-1) + ... + c*x**0
-        coder = Codificador(self.codLvl)
-        conversor = ConversorDeBases()
+        if not self.chave:
+            #Codifica os valores Unicode de acordo com a f(x) da classe e suas variações
+            coder = Codificador(self.codLvl)
 
-        #Gera a chave da criptografia
-        chave = geraChave(coder)
+            #Cria o conversor e define caracteres de separação entre letras/espaçamento entre palavras/vírgula dos números reais de acordo com a base do conversor
+            conversor = ConversorDeBases()
+        else:
+            coder = Codificador(self.chave.codLvl(), self.chave.coefs)
+            conversor = ConversorDeBases(self.chave.base)
+
+        separacao, espaco, virgula = self.caracteresEspeciais(conversor)
+        res = ""
+
+        if not self.chave:
+            #Gera a chave da criptografia se ela não tiver sido pré definida pelo usuário e a coloca na mensagems
+            chave = Chave(coder.coefs, conversor.base)
+            res += chave.geraString() + espaco
 
         #Monta a matriz com os valores codificados
-        matrizCod = list(map(lambda palavra: list(map(lambda valor: coder.codificaEmDecimal(valor), palavra)), matriz))
+        matrizCod = list(map(lambda palavra: list(map(lambda valor: coder.codifica(valor), palavra)), matriz))
         
-        #Converte os valores decimais codificados em valores da base X
+        #Converte os valores decimais codificados em valores da base X (iP = indice palavra, iV = indice valor)
         for iP in range(len(matrizCod)):
             for iV in range(len(matrizCod[iP])):
-                if type(matrizCod[iP][iV]) == tuple:
-                    matrizCod[iP][iV] = (conversor.decParaBaseX(matrizCod[iP][iV][0]), conversor.decParaBaseX(matrizCod[iP][iV][1]))
+                if type(matrizCod[iP][iV]) == tuple: #[0] - parte inteira, [1] - parte decimal
+                    matrizCod[iP][iV] = (conversor.decParaBaseX(matrizCod[iP][iV][0]), conversor.decParaBaseX(matrizCod[iP][iV][1])) 
                 else:
                     matrizCod[iP][iV] = conversor.decParaBaseX(matrizCod[iP][iV])
         
-        #Condensa o valor final em uma string
-        string = chave
-        string += conversor.espaco
-        for palavra in range(len(matrizCod)):
-            for caracter in range(len(matrizCod[palavra])):
-                if type(matrizCod[palavra][caracter]) == tuple:
-                    string += (matrizCod[palavra][caracter][0] + conversor.virgula + matrizCod[palavra][caracter][1])
-                else:
-                    string += matrizCod[palavra][caracter]
-                if caracter < len(matrizCod[palavra]) - 1:
-                    string += conversor.separacao
-            if palavra < len(matrizCod) - 1:
-                string += conversor.espaco
-        
-        return string
+        return res + condensaEmString(matrizCod, separacao, espaco, virgula)
 
     def decodifica(self, msg):
-        def processaChave(msg):
-            def pulaLetras(msg, contador):
-                novoContador = contador
-                while not self.eNumero(msg[novoContador]):
-                    novoContador += 1
-                return novoContador
+        #Cria o coder, o conversor e extrai a mensagem limpa baseados na chave
+        chave = self.chave
+        msgLimpa = msg
 
-            nCoefs = ""
-            coefs = []
-            contador = 0
+        if not chave:
+            chave = Chave()
+            msgLimpa = chave.extraiDados(msg)
+        
+        coder = Codificador(chave.codLvl(), chave.coefs)
+        conversor = ConversorDeBases(chave.base)
 
-            contador = pulaLetras(msg, contador)
-            while self.eNumero(msg[contador]):
-                nCoefs += msg[contador]
-                contador += 1
-            while len(coefs) < int(nCoefs):
-                if self.eNumero(msg[contador]):
-                    novoCoef = ""
-                    while self.eNumero(msg[contador]):
-                        novoCoef += msg[contador]
-                        contador += 1
-                    coefs.append(int(novoCoef))
-                else:
-                    contador = pulaLetras(msg, contador)
+        #Separa a mensagem em palavras codificadas
+        separacao, espaco, virgula = self.caracteresEspeciais(conversor)
+        palavras = msgLimpa.split(espaco)
 
-            contador = pulaLetras(msg, contador)
-            base = msg[contador] + msg[contador + 1]
-            contador += 3 #Pula a base e o espaço
-
-            return int(nCoefs), coefs, int(base), msg[contador:]
-
-        #Cria o coder, o conversor e tira a chave da mensagem
-        nCoefs, coefs, base, msgLimpa = processaChave(msg)
-        coder = Codificador(nCoefs, coefs)
-        conversor = ConversorDeBases(base)
-        palavras = msgLimpa.split(conversor.espaco)
-
-        #Monta uma matriz separando cada grupo que representa um valor decimal numa outra base
-        matrizCod32 = list(map(lambda palavra: palavra.split(conversor.separacao), palavras))
+        #Separa as palavras em caracteres codificados
+        matrizCod = list(map(lambda palavra: palavra.split(separacao), palavras))
     
-        #Monta a matriz com os códigos na base decimal
-        matrizCodDec = list()
-        for palavra in matrizCod32:
-            novaPalavra = list()
-            for caracter in palavra:
-                if conversor.virgula in caracter:
-                    valorQuebrado = caracter.split(conversor.virgula)
-                    novaPalavra.append((conversor.baseXParaDec(valorQuebrado[0]), conversor.baseXParaDec(valorQuebrado[1])))
+        #Coloca os valores da matriz na base decimal (iP = indice palavra, iC = indice caracter)
+        for iP in range(len(matrizCod)):
+            for iC in range(len(matrizCod[iP])):
+                if virgula in matrizCod[iP][iC]:
+                    valorQuebrado = matrizCod[iP][iC].split(virgula) #valorQuebrado[0] - parte inteira, valorQuebrado[1] - parte decimal
+                    matrizCod[iP][iC] = (conversor.baseXParaDec(valorQuebrado[0]), conversor.baseXParaDec(valorQuebrado[1])) 
                 else:
-                    novaPalavra.append(conversor.baseXParaDec(caracter))
-            matrizCodDec.append(novaPalavra)
+                    matrizCod[iP][iC] = conversor.baseXParaDec(matrizCod[iP][iC])
 
         #Decodifica os valores em valores da tabela Unicode
-        matrizUnicode = list(map(lambda palavra: list(map(lambda valor: coder.decodificaEmUnicode(valor), palavra)), matrizCodDec))
+        matrizUnicode = list(map(lambda palavra: list(map(lambda valor: coder.decodifica(valor), palavra)), matrizCod))
         
-        return self.tradutor.numerosParaFrase(matrizUnicode)
+        return self.tradutor.matrizParaFrase(matrizUnicode)

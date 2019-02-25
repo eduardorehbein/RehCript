@@ -2,11 +2,12 @@ from random import randint
 from mtmHelper import MtmHelper
 
 class Codificador:
+    '''Codifica e decodifica valores decimais baseados numa f(x) pré definida e suas variaçõess'''
 
     def __init__(self, nCoefsPolinomio, coefs = None):
         self.mtmHelper = MtmHelper()
         if not(coefs):
-            self.coefs = [randint(1, 100) for i in range(nCoefsPolinomio)]
+            self.coefs = [randint(0, 99) for i in range(nCoefsPolinomio)]
         else:
             self.coefs = coefs
         self.exp = list(range(nCoefsPolinomio))
@@ -14,6 +15,7 @@ class Codificador:
         self.ultOp = "deriv"
     
     def f(self, x):
+        '''f(x) = a*x**n + b*x**(n-1) + ... + c*x**0'''
         y = 0
         for i in range(len(self.coefs)):
             y += (x ** self.exp[i])*self.coefs[i]
@@ -37,7 +39,7 @@ class Codificador:
             n *= 10
         return (int(inteiro), int(n))
 
-    def codificaEmDecimal(self, valorUnicode):
+    def codifica(self, valorUnicode):
         res = self.f(valorUnicode)
         self.modificaPolinomio()
 
@@ -47,7 +49,7 @@ class Codificador:
         
         return res
 
-    def decodificaEmUnicode(self, valor):
+    def decodifica(self, valor):
         y = 0
         if type(valor) == tuple:
             parteDecimal = valor[1]
