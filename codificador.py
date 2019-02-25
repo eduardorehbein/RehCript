@@ -1,64 +1,63 @@
 from random import randint
+from mtmHelper import MtmHelper
 
 class Codificador:
 
     def __init__(self, nCoefsPolinomio, coefs = None):
+        self.mtmHelper = MtmHelper()
         if not(coefs):
-            self.coefs = [randint(0, 9) for i in range(nCoefsPolinomio)]
-            if self.coefs[len(self.coefs) - 1] == 0:
-                self.coefs[len(self.coefs) - 1] += 1
+            self.coefs = [randint(1, 9) for i in range(nCoefsPolinomio)]
         else:
             self.coefs = coefs
-        self.k = 1 #o k sera usado na integração
+        self.exp = list(range(nCoefsPolinomio))
+        self.k = 1
+        self.ultOp = "deriv"
     
     def f(self, x):
         y = 0
         for i in range(len(self.coefs)):
-            y += (x ** i)*self.coefs[i]
+            y += (x ** self.exp[i])*self.coefs[i]
         return y
 
+    def modificaPolinomio(self):
+        def temZero(lista):
+            return 0 in lista
+
+        if (self.ultOp == "deriv" and sum(self.coefs) > (self.coefs[0] + self.coefs[1])) or not temZero(self.coefs):
+            self.coefs = self.mtmHelper.derivaPol(self.coefs, self.exp)
+            self.ultOp = "deriv"
+        else:
+            self.coefs = self.mtmHelper.integraPol(self.coefs, self.exp, self.k)
+            self.k += 1
+            self.ultOp = "integr"
+
+    def tranfQuebradoEmTupla(self, inteiro, decimal):
+        n = decimal
+        while n - int(n) > 0:
+            n *= 10
+        return (int(inteiro), int(n))
+
     def codificaEmDecimal(self, valorUnicode):
-        return self.f(valorUnicode)
+        res = self.f(valorUnicode)
+        self.modificaPolinomio()
 
-    def decodificaEmUnicode(self, decimal):
-        def media(a, b):
-            return (a+b)/2
-
-        def estaPerto(a, b, prec=0.001):
-            return abs(a - b) < prec
-
-        def busca(f, a, b, prec=0.001):
-            x = media(a, b)
-            fx = f(x)
-            if estaPerto(a,b,prec):
-                return x
-            if fx>0:
-                return busca(f,a,x,prec)
-            if fx<0:
-                return busca(f,x,b,prec)
-            return x
-
-        def metodoDoIntervaloMedio(f, a, b, prec=0.001): #abssição
-            fA = f(a)
-            fB = f(b)
-            if (fA<0<fB):
-                return busca(f, a, b, prec)
-            elif (fB<0<fA):
-                return busca(f, b, a, prec)
-            elif fA==0:
-                return a
-            elif fB==0:
-                return b
-            else:
-                print('Os valores não têm sinais opostos:')
-                print('\tf({:.2f})={:.2f}'.format(a, fA))
-                print('\tf({:.2f})={:.2f}'.format(b, fB))
-                return
-
-        def g(x):
-            return self.f(x) - decimal
+        valorDecimail = res - int(res)
+        if valorDecimail > 0:
+            res = self.tranfQuebradoEmTupla(res, valorDecimail)
         
-        res = metodoDoIntervaloMedio(g, 0, 300)
+        return res
+
+    def decodificaEmUnicode(self, valor):
+        y = 0
+        if type(valor) == tuple:
+            parteDecimal = valor[1]
+            while parteDecimal > 1:
+                parteDecimal /= 10
+            y = (valor[0] + parteDecimal)
+        else:
+            y = valor
+        
+        res = self.mtmHelper.raiz(lambda x: self.f(x) - y, 0, 300)
 
         intTeto = int(res) + 1
         intBase = int(res)
@@ -66,5 +65,6 @@ class Codificador:
             res = intBase
         else:
             res = intTeto
-        
+
+        self.modificaPolinomio()
         return res

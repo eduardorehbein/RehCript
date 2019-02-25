@@ -14,7 +14,12 @@ msgDecodificada = rc.decodifica(msgCodificada)
 
 print("Mensagem decodificada:", msgDecodificada)
 
-# - Adicionar derivação e integração
+if msg == msgDecodificada:
+    print("Funfa perfeitamente XDXD")
+else:
+    print("Não funfa")
+
 # - Mascarar os coeficientes da chave usando valores aleatórios 0-31 juntamente com o 
 # dicionário da base 32, tudo isso para que espaços entre letras e palavras possam ser usados como valores 
 # Unicode, sendo eles 0 e 1
+# - Fazer a base ser variável entre 20 e até onde tem letra
